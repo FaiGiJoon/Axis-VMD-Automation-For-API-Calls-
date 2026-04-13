@@ -1,8 +1,10 @@
+from axis_base import AxisDevice
+
 def set_axis_shock_sensitivity(device, level):
     """
     Sets the shock detection sensitivity on an Axis camera.
     
-    :param device: The authenticated session object (e.g., requests.Session() or custom Axis object)
+    :param device: AxisDevice instance
     :param level: Integer between 0 (lowest) and 100 (highest)
     :return: The XML response text from the camera
     """
@@ -18,7 +20,6 @@ def set_axis_shock_sensitivity(device, level):
     }
 
     # 3. Execute the GET request
-    # Ensure your 'device' object handles Digest or Basic authentication
     try:
         response = device.get(path, params=params)
         response.raise_for_status()  # Check for 401, 404, or 500 errors
@@ -27,5 +28,6 @@ def set_axis_shock_sensitivity(device, level):
         return f"Failed to set sensitivity: {str(e)}"
 
 # Example Usage:
-# result = set_axis_shock_sensitivity(my_camera, 75)
+# cam = AxisDevice("192.168.1.100", "admin", "password")
+# result = set_axis_shock_sensitivity(cam, 75)
 # print(result)

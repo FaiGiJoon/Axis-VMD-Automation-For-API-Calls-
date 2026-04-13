@@ -2,7 +2,25 @@ import time
 import json
 import argparse
 from datetime import datetime
-from vmd_manager import VMDManager # Assume the class from before is in vmd_manager.py
+from axis_base import AxisDevice
+
+class VMDManager:
+    def __init__(self, device: AxisDevice):
+        self.device = device
+
+    def get_config(self):
+        """Retrieves the current VMD4 configuration."""
+        path = "/axis-cgi/vmd/config.cgi"
+        response = self.device.get(path)
+        if response.status_code == 200:
+            return response.json()
+        return None
+
+    def set_config(self, config):
+        """Updates the VMD4 configuration."""
+        path = "/axis-cgi/vmd/config.cgi"
+        response = self.device.post(path, json_data=config)
+        return response.status_code == 200
 
 def one_time_setup(vmd, profile_name, include_area):
     """Configures a camera once and exits."""
@@ -10,11 +28,16 @@ def one_time_setup(vmd, profile_name, include_area):
     config = vmd.get_config()
     if config:
         # Example: Update the first profile
-        config['profiles'][0]['name'] = profile_name
-        config['profiles'][0]['triggers'][0]['data'] = include_area
-        
-        if vmd.set_config(config):
-            print(f"[+] Success: {profile_name} configured.")
+        if 'profiles' in config and len(config['profiles']) > 0:
+            config['profiles'][0]['name'] = profile_name
+            # Ensure triggers exists before assigning
+            if 'triggers' in config['profiles'][0] and len(config['profiles'][0]['triggers']) > 0:
+                config['profiles'][0]['triggers'][0]['data'] = include_area
+
+            if vmd.set_config(config):
+                print(f"[+] Success: {profile_name} configured.")
+        else:
+            print("[-] No profiles found in configuration.")
 
 def background_service(vmd, interval=60):
     """
@@ -31,11 +54,11 @@ def background_service(vmd, interval=60):
             # If it's night (22:00 - 06:00), increase 'short-lived limit' 
             # to prevent bugs/noise from triggering alarms.
             is_modified = False
-            for profile in config['profiles']:
-                for filter_obj in profile['filters']:
-                    if filter_obj['type'] == "timeShortLivedLimit":
+            for profile in config.get('profiles', []):
+                for filter_obj in profile.get('filters', []):
+                    if filter_obj.get('type') == "timeShortLivedLimit":
                         new_val = 4 if (now >= 22 or now <= 6) else 1
-                        if filter_obj['data'] != new_val:
+                        if filter_obj.get('data') != new_val:
                             filter_obj['data'] = new_val
                             is_modified = True
             
@@ -53,7 +76,8 @@ if __name__ == "__main__":
     parser.add_argument("--password", required=True)
     
     args = parser.parse_args()
-    vmd = VMDManager(args.ip, args.user, args.password)
+    cam = AxisDevice(args.ip, args.user, args.password)
+    vmd = VMDManager(cam)
 
     if args.mode == 'setup':
         # Example area coordinates
