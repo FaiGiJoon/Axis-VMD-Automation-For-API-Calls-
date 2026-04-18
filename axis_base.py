@@ -6,6 +6,9 @@ class AxisDevice:
         self.ip = ip
         self.url_base = f"http://{ip}"
         self.session = requests.Session()
+        # Optimization: Disable environment variable lookup (e.g., for proxies)
+        # to reduce overhead on every request.
+        self.session.trust_env = False
         self.session.auth = HTTPDigestAuth(user, password)
 
     def get(self, path, params=None):
