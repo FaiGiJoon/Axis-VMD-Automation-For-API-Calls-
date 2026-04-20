@@ -60,5 +60,24 @@ class TestAxisFramework(unittest.TestCase):
         mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "update", "Group.Path": "value"})
         self.assertEqual(result, "OK")
 
+    @patch('requests.Session')
+    def test_encoding_default(self, mock_session_cls):
+        mock_session = mock_session_cls.return_value
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.encoding = None  # Simulate no encoding set
+        mock_session.get.return_value = mock_response
+        mock_session.post.return_value = mock_response
+
+        device = AxisDevice("1.2.3.4", "user", "pass")
+
+        # Test GET
+        resp_get = device.get("/test")
+        self.assertEqual(resp_get.encoding, 'utf-8')
+
+        # Test POST
+        resp_post = device.post("/test", json_data={})
+        self.assertEqual(resp_post.encoding, 'utf-8')
+
 if __name__ == '__main__':
     unittest.main()
