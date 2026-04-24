@@ -5,3 +5,7 @@
 ## 2026-04-20 - Explicitly set response encoding to avoid chardet
 **Learning:** When using `requests.Response.text`, if the `Content-Type` header doesn't specify a charset, `requests` attempts to detect the encoding using `chardet` or `charset_normalizer`. This is extremely slow (O(N) over the response body). Axis device responses (XML/JSON) are consistently UTF-8 but often lack the charset in the header.
 **Action:** Explicitly set `response.encoding = 'utf-8'` if it is `None` before accessing `.text`. In local benchmarks with ~40KB responses, this reduced overhead from ~85ms to <1ms.
+
+## 2026-04-24 - Use batch updates for param.cgi
+**Learning:** The Axis `param.cgi` endpoint supports updating multiple parameters in a single HTTP request by passing multiple key-value pairs in the query string. Using individual requests for each parameter update introduces significant network latency overhead, especially when configuring multiple devices or complex setups.
+**Action:** Use `ParamManager.update_params(params_dict)` instead of multiple `update_param` calls to consolidate updates into a single round-trip. This reduces total configuration time proportionally to the number of parameters being updated.
