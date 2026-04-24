@@ -61,6 +61,24 @@ class TestAxisFramework(unittest.TestCase):
         self.assertEqual(result, "OK")
 
     @patch('requests.Session')
+    def test_param_manager_batch(self, mock_session_cls):
+        mock_session = mock_session_cls.return_value
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "OK"
+        mock_session.get.return_value = mock_response
+
+        device = AxisDevice("1.2.3.4", "user", "pass")
+        pm = ParamManager(device)
+        params = {"Group.Path1": "val1", "Group.Path2": "val2"}
+        result = pm.update_params(params)
+
+        expected_params = {"action": "update"}
+        expected_params.update(params)
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params=expected_params)
+        self.assertEqual(result, "OK")
+
+    @patch('requests.Session')
     def test_encoding_default(self, mock_session_cls):
         mock_session = mock_session_cls.return_value
         mock_response = MagicMock()
