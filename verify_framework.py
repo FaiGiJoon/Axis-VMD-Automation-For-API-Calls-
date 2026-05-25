@@ -3,6 +3,10 @@ from unittest.mock import MagicMock, patch
 from axis_base import AxisDevice
 from vmd_manager import VMDManager
 from param_manager import ParamManager
+from ptz_manager import PTZManager
+from mqtt_manager import MQTTManager
+from overlay_manager import OverlayManager
+from storage_manager import StorageManager
 
 class TestAxisFramework(unittest.TestCase):
 
@@ -55,10 +59,16 @@ class TestAxisFramework(unittest.TestCase):
 
         device = AxisDevice("1.2.3.4", "user", "pass")
         pm = ParamManager(device)
-        result = pm.update_param("Group.Path", "value")
 
+        # Test update
+        result = pm.update_param("Group.Path", "value")
         mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "update", "Group.Path": "value"})
         self.assertEqual(result, "OK")
+
+        # Test get
+        result_get = pm.get_param("Group.Path")
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "list", "group": "Group.Path"})
+        self.assertEqual(result_get, "OK")
 
     @patch('requests.Session')
     def test_param_manager_batch(self, mock_session_cls):
@@ -70,13 +80,77 @@ class TestAxisFramework(unittest.TestCase):
 
         device = AxisDevice("1.2.3.4", "user", "pass")
         pm = ParamManager(device)
-        params = {"root.Image.I0.Appearance.Brightness": "50", "root.Image.I0.Appearance.Contrast": "50"}
-        result = pm.update_params(params)
 
-        expected_params = {"action": "update"}
-        expected_params.update(params)
-        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params=expected_params)
-        self.assertEqual(result, "OK")
+        # Test batch update
+        params_update = {"root.Image.I0.Appearance.Brightness": "50", "root.Image.I0.Appearance.Contrast": "50"}
+        pm.update_params(params_update)
+        expected_params_update = {"action": "update"}
+        expected_params_update.update(params_update)
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params=expected_params_update)
+
+        # Test batch get
+        params_get = ["root.Network", "root.System"]
+        pm.get_params(params_get)
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "list", "group": "root.Network,root.System"})
+
+    @patch('requests.Session')
+    def test_ptz_manager(self, mock_session_cls):
+        mock_session = mock_session_cls.return_value
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "OK"
+        mock_session.get.return_value = mock_response
+
+        device = AxisDevice("1.2.3.4", "user", "pass")
+        ptz = PTZManager(device)
+
+        ptz.move("left")
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/com/ptz.cgi", params={"move": "left"})
+
+        ptz.go_to_preset("Entrance")
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/com/ptz.cgi", params={"gotoserverpresetname": "Entrance"})
+
+    @patch('requests.Session')
+    def test_mqtt_manager(self, mock_session_cls):
+        mock_session = mock_session_cls.return_value
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "success"}
+        mock_session.post.return_value = mock_response
+
+        device = AxisDevice("1.2.3.4", "user", "pass")
+        mqtt = MQTTManager(device)
+
+        mqtt.activate_client()
+        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/mqtt/client.cgi", json={"apiVersion": "1.0", "method": "activateClient"})
+
+    @patch('requests.Session')
+    def test_overlay_manager(self, mock_session_cls):
+        mock_session = mock_session_cls.return_value
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "success"}
+        mock_session.post.return_value = mock_response
+
+        device = AxisDevice("1.2.3.4", "user", "pass")
+        overlay = OverlayManager(device)
+
+        overlay.list_overlays()
+        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/dynamicoverlay.cgi", json={"apiVersion": "1.0", "method": "list"})
+
+    @patch('requests.Session')
+    def test_storage_manager(self, mock_session_cls):
+        mock_session = mock_session_cls.return_value
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "success"}
+        mock_session.post.return_value = mock_response
+
+        device = AxisDevice("1.2.3.4", "user", "pass")
+        storage = StorageManager(device)
+
+        storage.get_storage_status()
+        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/storage/status.cgi", json={"apiVersion": "1.0", "method": "getStatus"})
 
     @patch('requests.Session')
     def test_encoding_default(self, mock_session_cls):
