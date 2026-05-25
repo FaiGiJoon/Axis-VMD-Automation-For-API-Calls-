@@ -13,7 +13,11 @@ The framework is built on a modular architecture to ensure consistency and secur
 * **axis_base.py**: The core engine handling Digest Authentication, connection persistence, and HTTP transport.
 * **Individual Scripts**: Specialized modules for specific API endpoints, including:
     * **vmd_manager.py**: Motion detection and filter optimization.
+    * **ptz_manager.py**: Full Pan-Tilt-Zoom and preset control.
     * **ptz_autotracker.py**: Intelligent tracking control.
+    * **mqtt_manager.py**: MQTT client and event bridging.
+    * **overlay_manager.py**: Dynamic text and image overlays.
+    * **storage_manager.py**: SD card and edge storage monitoring.
     * **io_ports.py**: Physical relay and supervised I/O automation.
     * **zipstream.py**: Dynamic bitrate and storage optimization.
     * [30+ other specialized scripts for various Axis services].
@@ -24,8 +28,9 @@ The framework is built on a modular architecture to ensure consistency and secur
 | :--- | :--- |
 | **Detection** | VMD 4, Shock Detection, Thermal/Thermometry, Autotracker |
 | **Control** | PTZ, Siren/Light, Z-Wave, I/O Ports, Video Output |
-| **System** | RAID, SSH, Remote Syslog, Time/NTP, Systemready |
-| **Streaming** | Zipstream, Stream Profiles, RTSP, Signed Video, QuadView |
+| **System** | RAID, SSH, Remote Syslog, Time/NTP, Systemready, Storage |
+| **Streaming** | Zipstream, Stream Profiles, RTSP, Signed Video, QuadView, Overlays |
+| **Integration** | MQTT, Event Bridge |
 
 ## Installation and Setup
 
@@ -35,33 +40,50 @@ The framework is built on a modular architecture to ensure consistency and secur
 
 ```bash
 pip install requests
+```
 
-2. Configure Credentials
+### 2. Configure Credentials
 Every script in this repository utilizes the AxisDevice class. You will need to provide your camera's details within your implementation:
 
-Python
+```python
 from axis_base import AxisDevice
 
 # Initialize your device
 cam = AxisDevice(ip="192.168.1.100", user="admin", password="your_password")
-Usage Examples
-Triggering a Siren and Light
-Bash
+```
+
+## Usage Examples
+
+### Triggering a Siren and Light
+```bash
 python siren_light.py --action start
-Dynamic Zipstream Adjustment
-Python
-from zipstream import set_zipstream_strength
+```
 
-# Increase compression during low-activity hours
-set_zipstream_strength(cam, strength="extreme")
-Core Features
-Scalability: Configure multiple cameras simultaneously using standard JSON profiles.
+### Batch Parameter Updates
+```python
+from param_manager import ParamManager
 
-Error Resilience: Built-in handling for Axis-specific error codes (1000-2999).
+pm = ParamManager(cam)
+# Update multiple image settings in one request
+pm.update_params({
+    "root.Image.I0.Appearance.Brightness": "50",
+    "root.Image.I0.Appearance.Contrast": "60"
+})
+```
 
-Lower False Positives: Capability to adjust sensitivity based on environmental metadata or time of day.
+### Managing PTZ Presets
+```python
+from ptz_manager import PTZManager
 
-VMS-Agnostic: Compatible with Milestone, Genetec, or Axis Camera Station.
+ptz = PTZManager(cam)
+ptz.go_to_preset("Main Entrance")
+```
 
-License
+## Core Features
+* **Scalability**: Configure multiple cameras simultaneously using standard JSON profiles.
+* **Error Resilience**: Built-in handling for Axis-specific error codes (1000-2999).
+* **Lower False Positives**: Capability to adjust sensitivity based on environmental metadata or time of day.
+* **VMS-Agnostic**: Compatible with Milestone, Genetec, or Axis Camera Station.
+
+## License
 This project is licensed under the MIT License. You are free to use, modify, and distribute it in both personal and commercial environments. See the LICENSE file for details.

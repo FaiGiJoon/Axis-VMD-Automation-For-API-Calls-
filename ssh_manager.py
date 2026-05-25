@@ -1,15 +1,12 @@
 from axis_base import AxisDevice
+from param_manager import ParamManager
 
-def toggle_ssh(device, enable=False):
+def toggle_ssh(device: AxisDevice, enable=False):
     """Enables or disables the SSH service on the camera."""
-    path = "/axis-cgi/param.cgi"
+    pm = ParamManager(device)
     # Convert boolean to Axis 'yes' or 'no'
     state = "yes" if enable else "no"
-    params = {
-        "action": "update",
-        "Network.SSH.Enabled": state
-    }
-    return device.get(path, params=params).text
+    return pm.update_param("Network.SSH.Enabled", state)
 
 # Example Usage:
 # cam = AxisDevice("192.168.1.100", "admin", "password")

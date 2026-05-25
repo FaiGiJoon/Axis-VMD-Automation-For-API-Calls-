@@ -9,3 +9,7 @@
 ## 2026-04-21 - Batching Parameter Updates
 **Learning:** Updating multiple parameters individually on Axis devices via `/axis-cgi/param.cgi` incurs significant network round-trip overhead. The API supports updating multiple parameters in a single query by appending them as key-value pairs.
 **Action:** Implement `update_params(params_dict)` in `ParamManager` to allow batch updates. This can lead to near-linear speedups relative to the number of parameters being updated (e.g., ~100x for 100 parameters in a mock environment, and significantly better in high-latency network environments).
+
+## 2026-04-22 - Batching Parameter Reads
+**Learning:** Similar to updates, reading parameter groups individually via `/axis-cgi/param.cgi?action=list` is inefficient. The API supports reading multiple groups by providing a comma-separated list in the `group` parameter.
+**Action:** Implement `get_params(group_paths)` in `ParamManager` to support batch reads. This minimizes the number of HTTP requests required to fetch configuration data, significantly reducing initialization time for complex automation tasks.
