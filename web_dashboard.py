@@ -1,13 +1,16 @@
 from flask import Flask, render_template, request, Response, flash
 from flask_wtf import FlaskForm, CSRFProtect
-from wtforms import StringField, PasswordField, IntegerField, SelectField
-from wtforms.validators import DataRequired, IPAddress, NumberRange, AnyOf, Regexp
+from wtforms import StringField, PasswordField, IntegerField, SelectField, BooleanField
+from wtforms.validators import DataRequired, IPAddress, NumberRange, AnyOf, Regexp, Optional
 import io
 import os
 import logging
 from axis_base import AxisDevice
 from param_manager import ParamManager
 from zipstream import set_zipstream_strength
+from shock_detection import set_axis_shock_sensitivity
+from siren_light import control_siren
+from vmd_manager import VMDManager
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(32)
@@ -30,6 +33,9 @@ class CameraForm(FlaskForm):
         ('high', 'High'),
         ('extreme', 'Extreme')
     ], validators=[DataRequired(), AnyOf(['off', 'low', 'medium', 'high', 'extreme'])])
+    shock_sensitivity = IntegerField('Shock Sensitivity (0-100)', validators=[Optional(), NumberRange(min=0, max=100)], default=50)
+    siren_active = BooleanField('Siren Active')
+    vmd_enabled = BooleanField('Motion Detection Enabled')
 
 def sanitize_for_bat(value):
     """
@@ -48,7 +54,7 @@ def sanitize_for_bat(value):
     # In .bat files, % must be escaped as %% to be treated literally
     return value.replace('%', '%%')
 
-def generate_bat_content(ip, user, password, brightness, contrast, zipstream):
+def generate_bat_content(ip, user, password, brightness, contrast, zipstream, shock_sensitivity, siren_active):
     # Sanitize inputs
     s_ip = sanitize_for_bat(ip)
     s_user = sanitize_for_bat(user)
@@ -56,6 +62,9 @@ def generate_bat_content(ip, user, password, brightness, contrast, zipstream):
     s_brightness = sanitize_for_bat(brightness)
     s_contrast = sanitize_for_bat(contrast)
     s_zipstream = sanitize_for_bat(zipstream)
+    s_shock = sanitize_for_bat(shock_sensitivity)
+    s_siren = "on" if siren_active else "off"
+    s_siren_action = "start" if siren_active else "stop"
 
     # Use the 'set "VAR=VAL"' syntax which is robust in Windows batch
     # for most special characters except double quotes.
@@ -72,6 +81,15 @@ curl -s --digest -u "%USER%:%PASS%" "http://%IP%/axis-cgi/param.cgi?action=updat
 
 echo Setting Zipstream to {s_zipstream}...
 curl -s --digest -u "%USER%:%PASS%" "http://%IP%/axis-cgi/zipstream/setstrength.cgi?strength={s_zipstream}"
+
+echo Setting Shock Sensitivity to {s_shock}...
+curl -s --digest -u "%USER%:%PASS%" "http://%IP%/axis-cgi/shockdetection/setsensitivitylevel.cgi?schemaversion=1&level={s_shock}"
+
+echo Setting Siren to {s_siren}...
+curl -s --digest -u "%USER%:%PASS%" "http://%IP%/axis-cgi/siren_and_light.cgi?action={s_siren_action}&siren={s_siren}"
+
+rem NOTE: VMD (Motion Detection) configuration is complex and requires JSON payload.
+rem Please use the web dashboard to enable/disable VMD.
 
 echo Done!
 pause
@@ -93,17 +111,38 @@ def apply_settings():
         brightness = form.brightness.data
         contrast = form.contrast.data
         zipstream = form.zipstream.data
+        shock_sensitivity = form.shock_sensitivity.data
+        siren_active = form.siren_active.data
+        vmd_enabled = form.vmd_enabled.data
 
         try:
             device = AxisDevice(ip, user, password, trust_env=False)
             pm = ParamManager(device)
 
+            # Update Image Parameters
             pm.update_params({
                 "root.Image.I0.Appearance.Brightness": str(brightness),
                 "root.Image.I0.Appearance.Contrast": str(contrast)
             })
 
+            # Update Zipstream
             set_zipstream_strength(device, zipstream)
+
+            # Update Shock Sensitivity
+            if shock_sensitivity is not None:
+                set_axis_shock_sensitivity(device, shock_sensitivity)
+
+            # Update Siren
+            control_siren(device, action="start" if siren_active else "stop")
+
+            # Update VMD
+            vmd = VMDManager(device)
+            config = vmd.get_config()
+            if config and 'profiles' in config:
+                for profile in config['profiles']:
+                    profile['enabled'] = vmd_enabled
+                vmd.set_config(config)
+
             return "Settings applied successfully!"
         except Exception as e:
             logger.error(f"Failed to apply settings to {ip}: {str(e)}")
@@ -122,17 +161,19 @@ def download_bat():
         brightness = form.brightness.data
         contrast = form.contrast.data
         zipstream = form.zipstream.data
+        shock_sensitivity = form.shock_sensitivity.data
+        siren_active = form.siren_active.data
 
         try:
-            bat_content = generate_bat_content(ip, user, password, brightness, contrast, zipstream)
+            bat_content = generate_bat_content(ip, user, password, brightness, contrast, zipstream, shock_sensitivity, siren_active)
             return Response(
                 bat_content,
                 mimetype="text/plain",
                 headers={"Content-disposition": "attachment; filename=setup_camera.bat"}
             )
-        except ValueError as e: 
-              logger.warning(f"Validation error while generating BAT for {ip}: {str(e)}")
-             return "Validation Error: Invalid input provided.", 400
+        except ValueError as e:
+            logger.warning(f"Validation error while generating BAT for {ip}: {str(e)}")
+            return "Validation Error: Invalid input provided.", 400
            
 
     errors = ", ".join([f"{field}: {', '.join(errs)}" for field, errs in form.errors.items()])
