@@ -130,9 +130,9 @@ def download_bat():
                 mimetype="text/plain",
                 headers={"Content-disposition": "attachment; filename=setup_camera.bat"}
             )
-        except ValueError as e: 
-              logger.warning(f"Validation error while generating BAT for {ip}: {str(e)}")
-             return "Validation Error: Invalid input provided.", 400
+        except ValueError as e:
+            logger.warning(f"Validation error while generating BAT for {ip}: {str(e)}")
+            return "Validation Error: Invalid input provided.", 400
            
 
     errors = ", ".join([f"{field}: {', '.join(errs)}" for field, errs in form.errors.items()])

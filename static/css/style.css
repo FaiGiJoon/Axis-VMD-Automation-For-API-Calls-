@@ -1,0 +1,100 @@
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #020617;
+    color: #f8fafc;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+.container {
+    background-color: #0f172a;
+    padding: 30px;
+    border-radius: 16px;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 500px;
+}
+h1 {
+    text-align: center;
+    color: #f8fafc;
+    margin-bottom: 24px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+.form-group {
+    margin-bottom: 20px;
+}
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: #94a3b8;
+    font-weight: 500;
+    font-size: 14px;
+}
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 12px;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    color: #f8fafc;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+input:focus, select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+hr {
+    border: 0;
+    border-top: 1px solid #334155;
+    margin: 24px 0;
+}
+.button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+.btn-apply {
+    background-color: #6366f1;
+    color: white;
+}
+.btn-apply:hover {
+    background-color: #4f46e5;
+    transform: translateY(-1px);
+}
+.btn-download {
+    background-color: #8b5cf6;
+    color: white;
+}
+.btn-download:hover {
+    background-color: #7c3aed;
+    transform: translateY(-1px);
+}
+#status {
+    margin-top: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+.error-msg {
+    color: red;
+    font-size: 12px;
+    margin-top: 2px;
+}
