@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axis Camera Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .btn-apply {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-apply:hover {
+            background-color: #218838;
+        }
+        .btn-download {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-download:hover {
+            background-color: #0069d9;
+        }
+        #status {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .error-msg {
+            color: red;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Axis Camera Setup</h1>
+        <form id="cameraForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="ip">Camera IP Address</label>
+                {{ form.ip(placeholder="192.168.1.100") }}
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                {{ form.username() }}
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                {{ form.password() }}
+            </div>
+            <hr>
+            <div class="form-group">
+                <label for="brightness">Brightness (0-100)</label>
+                {{ form.brightness() }}
+            </div>
+            <div class="form-group">
+                <label for="contrast">Contrast (0-100)</label>
+                {{ form.contrast() }}
+            </div>
+            <div class="form-group">
+                <label for="zipstream">Zipstream Strength</label>
+                {{ form.zipstream() }}
+            </div>
+            <div class="button-group">
+                <button type="button" class="btn-apply" onclick="submitForm('/apply')">Apply Settings</button>
+                <button type="button" class="btn-download" onclick="submitForm('/download_bat')">Download .bat</button>
+            </div>
+        </form>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function submitForm(action) {
+            const form = document.getElementById('cameraForm');
+            const formData = new FormData(form);
+            const statusDiv = document.getElementById('status');
+
+            if (action === '/download_bat') {
+                const formElement = document.createElement('form');
+                formElement.method = 'POST';
+                formElement.action = action;
+
+                for (const [key, value] of formData.entries()) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value;
+                    formElement.appendChild(input);
+                }
+
+                document.body.appendChild(formElement);
+                formElement.submit();
+                document.body.removeChild(formElement);
+                statusDiv.innerText = "Generating .bat file...";
+                statusDiv.style.color = "blue";
+                return;
+            }
+
+            statusDiv.innerText = "Applying settings...";
+            statusDiv.style.color = "blue";
+
+            try {
+                const response = await fetch(action, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.text();
+                statusDiv.innerText = result;
+                statusDiv.style.color = response.ok ? "green" : "red";
+            } catch (error) {
+                statusDiv.innerText = "Error: " + error.message;
+                statusDiv.style.color = "red";
+            }
+        }
+    </script>
+</body>
+</html>
