@@ -134,7 +134,8 @@ def control_app():
         success = device.apps.control_app(app_id, action)
         return jsonify({"success": success})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.exception("Failed to control app")
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/apply', methods=['POST'])
 def apply_settings():
