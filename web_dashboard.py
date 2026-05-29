@@ -120,8 +120,9 @@ def list_apps():
         device = AxisDevice(ip, user, password)
         apps = device.apps.list_apps()
         return jsonify(apps)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        logger.exception("Failed to list apps")
+        return jsonify({"error": "Failed to list applications."}), 500
 
 @app.route('/control_app', methods=['POST'])
 def control_app():
