@@ -167,8 +167,8 @@ def apply_settings():
 
             return "Settings applied successfully!"
         except Exception as e:
-            logger.error(f"Failed to apply settings: {str(e)}")
-            return f"Error: {str(e)}", 500
+            logger.exception("Failed to apply settings")
+            return "An internal error has occurred.", 500
 
     errors = ", ".join([f"{field}: {', '.join(errs)}" for field, errs in form.errors.items()])
     return f"Validation Error: {errors}", 400
