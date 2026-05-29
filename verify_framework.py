@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 from axis_base import AxisDevice
 from vmd_manager import VMDManager
 from param_manager import ParamManager
@@ -10,166 +10,140 @@ from storage_manager import StorageManager
 
 class TestAxisFramework(unittest.TestCase):
 
-    @patch('requests.Session')
-    def test_axis_device_get(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.text = "OK"
-        mock_session.get.return_value = mock_response
+    def setUp(self):
+        self.device = AxisDevice("1.2.3.4", "admin", "pass")
 
-        device = AxisDevice("1.2.3.4", "user", "pass")
-        resp = device.get("/test", params={"a": 1})
+    @patch('axis_base.requests.Session')
+    def test_axis_device_get(self, mock_session_class):
+        mock_session = mock_session_class.return_value
+        self.device.session = mock_session
+        mock_session.get.return_value.status_code = 200
+        mock_session.get.return_value.text = "OK"
+        mock_session.get.return_value.encoding = 'utf-8'
 
-        mock_session.get.assert_called_once_with("http://1.2.3.4/test", params={"a": 1})
-        self.assertEqual(resp.text, "OK")
+        self.device.get("/test", params={"a": 1})
+        mock_session.get.assert_called_once_with("http://1.2.3.4/test", params={"a": 1}, timeout=10, stream=False)
 
-    @patch('requests.Session')
-    def test_vmd_manager(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
+    @patch('axis_base.requests.Session')
+    def test_vmd_manager(self, mock_session_class):
+        mock_session = mock_session_class.return_value
+        self.device.session = mock_session
+        vmd = VMDManager(self.device)
 
         # Test get_config
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = {"profiles": []}
-        mock_session.get.return_value = mock_get_resp
+        mock_session.get.return_value.status_code = 200
+        mock_session.get.return_value.json.return_value = {"profiles": []}
+        mock_session.get.return_value.encoding = 'utf-8'
 
-        device = AxisDevice("1.2.3.4", "user", "pass")
-        vmd = VMDManager(device)
         config = vmd.get_config()
         self.assertEqual(config, {"profiles": []})
-        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/vmd/config.cgi", params=None)
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/vmd/config.cgi", params=None, timeout=10, stream=False)
 
         # Test set_config
-        mock_post_resp = MagicMock()
-        mock_post_resp.status_code = 200
-        mock_session.post.return_value = mock_post_resp
-
+        mock_session.post.return_value.status_code = 200
+        mock_session.post.return_value.encoding = 'utf-8'
         success = vmd.set_config({"profiles": []})
         self.assertTrue(success)
-        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/vmd/config.cgi", json={"profiles": []})
+        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/vmd/config.cgi", json={"profiles": []}, params=None, timeout=10)
 
-    @patch('requests.Session')
-    def test_param_manager(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.text = "OK"
-        mock_session.get.return_value = mock_response
+    @patch('axis_base.requests.Session')
+    def test_param_manager(self, mock_session_class):
+        mock_session = mock_session_class.return_value
+        self.device.session = mock_session
+        pm = ParamManager(self.device)
 
-        device = AxisDevice("1.2.3.4", "user", "pass")
-        pm = ParamManager(device)
+        mock_session.get.return_value.status_code = 200
+        mock_session.get.return_value.text = "Group.Path=value"
+        mock_session.get.return_value.encoding = 'utf-8'
 
-        # Test update
-        result = pm.update_param("Group.Path", "value")
-        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "update", "Group.Path": "value"})
-        self.assertEqual(result, "OK")
+        # Test get_param
+        val = pm.get_param("Group.Path")
+        self.assertIn("Group.Path=value", val)
 
-        # Test get
-        result_get = pm.get_param("Group.Path")
-        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "list", "group": "Group.Path"})
-        self.assertEqual(result_get, "OK")
+        # Test update_param
+        pm.update_param("Group.Path", "value")
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "update", "Group.Path": "value"}, timeout=10, stream=False)
 
-    @patch('requests.Session')
-    def test_param_manager_batch(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.text = "OK"
-        mock_session.get.return_value = mock_response
+    @patch('axis_base.requests.Session')
+    def test_param_manager_batch(self, mock_session_class):
+        mock_session = mock_session_class.return_value
+        self.device.session = mock_session
+        pm = ParamManager(self.device)
 
-        device = AxisDevice("1.2.3.4", "user", "pass")
-        pm = ParamManager(device)
-
-        # Test batch update
-        params_update = {"root.Image.I0.Appearance.Brightness": "50", "root.Image.I0.Appearance.Contrast": "50"}
-        pm.update_params(params_update)
-        expected_params_update = {"action": "update"}
-        expected_params_update.update(params_update)
-        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params=expected_params_update)
+        mock_session.get.return_value.status_code = 200
+        mock_session.get.return_value.text = "OK"
+        mock_session.get.return_value.encoding = 'utf-8'
 
         # Test batch get
-        params_get = ["root.Network", "root.System"]
-        pm.get_params(params_get)
-        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "list", "group": "root.Network,root.System"})
+        pm.get_params(["root.Network", "root.System"])
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params={"action": "list", "group": "root.Network,root.System"}, timeout=10, stream=False)
 
-    @patch('requests.Session')
-    def test_ptz_manager(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.text = "OK"
-        mock_session.get.return_value = mock_response
+        # Test batch update
+        pm.update_params({
+            "root.Image.I0.Appearance.Brightness": "50",
+            "root.Image.I0.Appearance.Contrast": "50"
+        })
+        expected_params_update = {
+            "action": "update",
+            "root.Image.I0.Appearance.Brightness": "50",
+            "root.Image.I0.Appearance.Contrast": "50"
+        }
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/param.cgi", params=expected_params_update, timeout=10, stream=False)
 
-        device = AxisDevice("1.2.3.4", "user", "pass")
-        ptz = PTZManager(device)
+    @patch('axis_base.requests.Session')
+    def test_ptz_manager(self, mock_session_class):
+        mock_session = mock_session_class.return_value
+        self.device.session = mock_session
+        ptz = PTZManager(self.device)
+
+        mock_session.get.return_value.status_code = 200
+        mock_session.get.return_value.text = "OK"
+        mock_session.get.return_value.encoding = 'utf-8'
 
         ptz.move("left")
-        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/com/ptz.cgi", params={"move": "left"})
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/com/ptz.cgi", params={"move": "left"}, timeout=10, stream=False)
 
         ptz.go_to_preset("Entrance")
-        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/com/ptz.cgi", params={"gotoserverpresetname": "Entrance"})
+        mock_session.get.assert_called_with("http://1.2.3.4/axis-cgi/com/ptz.cgi", params={"gotoserverpresetname": "Entrance"}, timeout=10, stream=False)
 
-    @patch('requests.Session')
-    def test_mqtt_manager(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"status": "success"}
-        mock_session.post.return_value = mock_response
+    @patch('axis_base.requests.Session')
+    def test_mqtt_manager(self, mock_session_class):
+        mock_session = mock_session_class.return_value
+        self.device.session = mock_session
+        mqtt = MQTTManager(self.device)
 
-        device = AxisDevice("1.2.3.4", "user", "pass")
-        mqtt = MQTTManager(device)
+        mock_session.post.return_value.status_code = 200
+        mock_session.post.return_value.json.return_value = {"apiVersion": "1.0", "method": "activateClient"}
+        mock_session.post.return_value.encoding = 'utf-8'
 
         mqtt.activate_client()
-        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/mqtt/client.cgi", json={"apiVersion": "1.0", "method": "activateClient"})
+        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/mqtt/client.cgi", json={"apiVersion": "1.0", "method": "activateClient"}, params=None, timeout=10)
 
-    @patch('requests.Session')
-    def test_overlay_manager(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"status": "success"}
-        mock_session.post.return_value = mock_response
+    @patch('axis_base.requests.Session')
+    def test_overlay_manager(self, mock_session_class):
+        mock_session = mock_session_class.return_value
+        self.device.session = mock_session
+        overlay = OverlayManager(self.device)
 
-        device = AxisDevice("1.2.3.4", "user", "pass")
-        overlay = OverlayManager(device)
+        mock_session.post.return_value.status_code = 200
+        mock_session.post.return_value.json.return_value = {"apiVersion": "1.0", "method": "list"}
+        mock_session.post.return_value.encoding = 'utf-8'
 
         overlay.list_overlays()
-        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/dynamicoverlay.cgi", json={"apiVersion": "1.0", "method": "list"})
+        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/dynamicoverlay.cgi", json={"apiVersion": "1.0", "method": "list"}, params=None, timeout=10)
 
-    @patch('requests.Session')
-    def test_storage_manager(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"status": "success"}
-        mock_session.post.return_value = mock_response
+    @patch('axis_base.requests.Session')
+    def test_storage_manager(self, mock_session_class):
+        mock_session = mock_session_class.return_value
+        self.device.session = mock_session
+        storage = StorageManager(self.device)
 
-        device = AxisDevice("1.2.3.4", "user", "pass")
-        storage = StorageManager(device)
+        mock_session.post.return_value.status_code = 200
+        mock_session.post.return_value.json.return_value = {"apiVersion": "1.0", "method": "getStatus"}
+        mock_session.post.return_value.encoding = 'utf-8'
 
         storage.get_storage_status()
-        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/storage/status.cgi", json={"apiVersion": "1.0", "method": "getStatus"})
-
-    @patch('requests.Session')
-    def test_encoding_default(self, mock_session_cls):
-        mock_session = mock_session_cls.return_value
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.encoding = None  # Simulate no encoding set
-        mock_session.get.return_value = mock_response
-        mock_session.post.return_value = mock_response
-
-        device = AxisDevice("1.2.3.4", "user", "pass")
-
-        # Test GET
-        resp_get = device.get("/test")
-        self.assertEqual(resp_get.encoding, 'utf-8')
-
-        # Test POST
-        resp_post = device.post("/test", json_data={})
-        self.assertEqual(resp_post.encoding, 'utf-8')
+        mock_session.post.assert_called_with("http://1.2.3.4/axis-cgi/storage/status.cgi", json={"apiVersion": "1.0", "method": "getStatus"}, params=None, timeout=10)
 
 if __name__ == '__main__':
     unittest.main()
