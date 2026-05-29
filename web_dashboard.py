@@ -191,7 +191,8 @@ def download_bat():
                 headers={"Content-disposition": "attachment; filename=setup_camera.bat"}
             )
         except ValueError as e:
-            return f"Validation Error: {str(e)}", 400
+            logger.warning("Validation error in /download_bat: %s", str(e))
+            return "Validation Error: Invalid input provided.", 400
 
     errors = ", ".join([f"{field}: {', '.join(errs)}" for field, errs in form.errors.items()])
     return f"Validation Error: {errors}", 400
