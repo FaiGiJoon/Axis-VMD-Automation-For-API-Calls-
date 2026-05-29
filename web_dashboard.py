@@ -104,7 +104,7 @@ def snapshot():
         return send_file(io.BytesIO(img_bytes), mimetype='image/jpeg')
     except Exception as e:
         logger.error(f"Failed to fetch snapshot: {e}")
-        return str(e), 500
+        return "An internal error has occurred", 500
 
 @app.route('/apps', methods=['POST'])
 def list_apps():
