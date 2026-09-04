@@ -13,3 +13,7 @@
 ## 2026-04-22 - Batching Parameter Reads
 **Learning:** Similar to updates, reading parameter groups individually via `/axis-cgi/param.cgi?action=list` is inefficient. The API supports reading multiple groups by providing a comma-separated list in the `group` parameter.
 **Action:** Implement `get_params(group_paths)` in `ParamManager` to support batch reads. This minimizes the number of HTTP requests required to fetch configuration data, significantly reducing initialization time for complex automation tasks.
+
+## 2026-08-11 - Parse XML bytes directly with ElementTree
+**Learning:** Passing `response.text` to `xml.etree.ElementTree.fromstring` forces Python string decoding and re-parsing. Passing `response.content` (raw UTF-8 bytes) allows ElementTree's C expat parser to parse directly without intermediate string conversions.
+**Action:** Use `ET.fromstring(response.content)` when parsing XML API responses to improve throughput and avoid unnecessary string encoding/decoding overhead.

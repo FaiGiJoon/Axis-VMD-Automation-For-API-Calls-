@@ -1,5 +1,9 @@
 from axis_base import AxisDevice
+from recording_manager import RecordingManager
 
-def list_recording_groups(device):
-    path = "/axis-cgi/record/recording_group/list.cgi"
-    return device.get(path, params={"schemaversion": "1"}).text
+def list_recording_groups(device: AxisDevice):
+    """
+    Lists recording groups configured on the device.
+    Delegates to RecordingManager for consistency across the framework.
+    """
+    return device.recording.list_recording_groups()

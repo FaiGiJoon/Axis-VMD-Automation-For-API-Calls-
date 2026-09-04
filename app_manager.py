@@ -9,12 +9,16 @@ class AppManager:
         path = "/axis-cgi/applications/list.cgi"
         response = self.device.post(path)
 
-        # Parse XML response
-        root = ET.fromstring(response.text)
+        # Optimization: Parse raw bytes directly via response.content to avoid Python string decoding overhead
+        root = ET.fromstring(response.content)
         apps = []
         for app in root.findall('application'):
             apps.append(app.attrib)
         return apps
+
+    def get_apps_dict(self):
+        """Returns a dictionary mapping application names to application attributes for O(1) lookup."""
+        return {app.get('Name'): app for app in self.list_apps() if app.get('Name')}
 
     def control_app(self, app_id, action):
         """
@@ -40,8 +44,4 @@ class AppManager:
         return self.control_app(app_id, "restart")
 
     def get_app_info(self, app_id):
-        apps = self.list_apps()
-        for app in apps:
-            if app.get('Name') == app_id:
-                return app
-        return None
+        return self.get_apps_dict().get(app_id)
