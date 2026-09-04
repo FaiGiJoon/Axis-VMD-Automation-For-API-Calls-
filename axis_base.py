@@ -23,6 +23,8 @@ class AxisDevice:
         self._apps = None
         self._aoa = None
         self._image = None
+        self._recording = None
+        self._device_data_hub = None
 
     def get(self, path, params=None, stream=False):
         try:
@@ -109,3 +111,17 @@ class AxisDevice:
             from image_manager import ImageManager
             self._image = ImageManager(self)
         return self._image
+
+    @property
+    def recording(self):
+        if self._recording is None:
+            from recording_manager import RecordingManager
+            self._recording = RecordingManager(self)
+        return self._recording
+
+    @property
+    def device_data_hub(self):
+        if self._device_data_hub is None:
+            from device_data_hub_manager import DeviceDataHubManager
+            self._device_data_hub = DeviceDataHubManager(self)
+        return self._device_data_hub
