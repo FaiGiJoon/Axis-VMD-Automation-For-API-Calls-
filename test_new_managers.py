@@ -51,6 +51,67 @@ class TestNewManagers(unittest.TestCase):
             timeout=10
         )
 
+        remove_success = self.device.apps.remove_app("vmd")
+        self.assertTrue(remove_success)
+
+    def test_app_manager_upload(self):
+        self.device.session.post.return_value.text = "OK"
+        file_bytes = b"fake_eap_content"
+        success = self.device.apps.upload_app(file_bytes, "myapp.eap")
+        self.assertTrue(success)
+        self.device.session.post.assert_called_with(
+            "http://192.168.1.100/axis-cgi/applications/upload.cgi",
+            json=None,
+            params=None,
+            timeout=10,
+            files={'file': ('myapp.eap', file_bytes, 'application/octet-stream')}
+        )
+
+    def test_app_manager_config(self):
+        get_xml = '<reply result="ok"><param name="AllowUnsigned" value="true" /></reply>'
+        self.device.session.post.return_value.content = get_xml.encode('utf-8')
+
+        val = self.device.apps.get_config_param("AllowUnsigned")
+        self.assertEqual(val, "true")
+
+        set_xml = '<reply result="ok" />'
+        self.device.session.post.return_value.content = set_xml.encode('utf-8')
+        success = self.device.apps.set_config_param("AllowUnsigned", False)
+        self.assertTrue(success)
+        self.device.session.post.assert_called_with(
+            "http://192.168.1.100/axis-cgi/applications/config.cgi",
+            json=None,
+            params={"action": "set", "name": "AllowUnsigned", "value": "false"},
+            timeout=10
+        )
+
+    def test_app_manager_license(self):
+        self.device.session.post.return_value.text = "OK"
+        up_success = self.device.apps.upload_license_key("myapp", b"keydata")
+        self.assertTrue(up_success)
+        self.device.session.post.assert_called_with(
+            "http://192.168.1.100/axis-cgi/applications/license.cgi",
+            json=None,
+            params={"action": "uploadlicensekey", "package": "myapp"},
+            timeout=10,
+            data=b"keydata"
+        )
+
+        rm_success = self.device.apps.remove_license_key("myapp")
+        self.assertTrue(rm_success)
+
+    def test_app_manager_info(self):
+        info_xml = """<reply result="ok">
+            <supportedSdks>
+                <sdk>acap3</sdk>
+                <sdk>acap4-cv</sdk>
+                <sdk>acap4-native</sdk>
+            </supportedSdks>
+        </reply>"""
+        self.device.session.post.return_value.content = info_xml.encode('utf-8')
+        sdks = self.device.apps.get_supported_sdks()
+        self.assertEqual(sdks, ["acap3", "acap4-cv", "acap4-native"])
+
     def test_recording_manager(self):
         self.device.session.get.return_value.text = "OK"
 
