@@ -18,6 +18,28 @@ class DeviceDataHubManager:
         response = self.device.post(path, json_data=payload)
         return response.json()
 
+    def subscribe(self, topic: str):
+        """Subscribes to a Device Data Hub topic."""
+        path = "/axis-cgi/devicedatahub.cgi"
+        payload = {
+            "apiVersion": "1.0",
+            "method": "subscribe",
+            "params": {"topic": topic}
+        }
+        response = self.device.post(path, json_data=payload)
+        return response.json()
+
+    def unsubscribe(self, topic: str):
+        """Unsubscribes from a Device Data Hub topic."""
+        path = "/axis-cgi/devicedatahub.cgi"
+        payload = {
+            "apiVersion": "1.0",
+            "method": "unsubscribe",
+            "params": {"topic": topic}
+        }
+        response = self.device.post(path, json_data=payload)
+        return response.json()
+
     def get_topics(self):
         """Retrieves active publish/subscribe topics in Device Data Hub."""
         path = "/axis-cgi/devicedatahub.cgi"
