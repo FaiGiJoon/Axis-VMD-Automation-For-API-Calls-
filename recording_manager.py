@@ -45,3 +45,21 @@ class RecordingManager:
         """Retrieves status of active recordings and recording devices."""
         path = "/axis-cgi/record/status.cgi"
         return self.device.get(path, params={"schemaversion": "1"}).text
+
+    def get_recording_spans(self, recording_id=None):
+        """Retrieves recording spans for recordings (Recording Search API)."""
+        path = "/axis-cgi/record/spans.cgi"
+        params = {"schemaversion": "1"}
+        if recording_id:
+            params["recordingid"] = recording_id
+        return self.device.get(path, params=params).text
+
+    def get_recording_segments(self, recording_id=None, span_id=None):
+        """Retrieves recording segments for a span (Recording Playback API)."""
+        path = "/axis-cgi/record/segments.cgi"
+        params = {"schemaversion": "1"}
+        if recording_id:
+            params["recordingid"] = recording_id
+        if span_id:
+            params["spanid"] = span_id
+        return self.device.get(path, params=params).text

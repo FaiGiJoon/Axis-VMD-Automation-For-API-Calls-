@@ -26,11 +26,28 @@ The framework is built on a modular architecture to ensure consistency and secur
 
 | Category | Supported APIs |
 | :--- | :--- |
-| **Detection** | VMD 4, Shock Detection, Thermal/Thermometry, Autotracker |
-| **Control** | PTZ, Siren/Light, Z-Wave, I/O Ports, Video Output |
-| **System** | RAID, SSH, Remote Syslog, Time/NTP, Systemready, Storage |
-| **Streaming** | Zipstream, Stream Profiles, RTSP, Signed Video, QuadView, Overlays |
-| **Integration** | MQTT, Event Bridge |
+| **Detection** | VMD 4, Shock Detection, Thermal/Thermometry, Autotracker, AXIS Object Analytics (AOA) |
+| **Control** | PTZ, PTZ Control WS API, Siren/Light, Z-Wave, I/O Ports, Video Output |
+| **System** | RAID, SSH, Remote Syslog, Time/NTP, Systemready, Storage (Axstorage, Recording Search/Playback/Notify) |
+| **Streaming** | Zipstream, Stream Profiles, RTSP, Signed Video, QuadView, Overlays (Axoverlay 2, Bounding Box API) |
+| **Integration** | MQTT, Event Bridge, Device Data Hub API, Message Broker API, ACAP 12 Native SDK APIs |
+
+## ACAP Version 12 Supported APIs
+
+This framework supports ACAP version 12 APIs for Axis OS devices across various chip architectures (ARTPEC-6/7/8/9, Ambarella CV25/CV75, i.MX 6SoloX):
+
+* **Edge Storage APIs**:
+  * **Axstorage API**: Save and retrieve data on mounted SD cards and NAS units.
+  * **Recording Search, Playback & Notify APIs**: List recording spans, inspect tracks/containers, retrieve segment handles, and monitor new recording segments (`recording_manager.py`).
+* **Device Data Hub API**: Central publish/subscribe interface for inter-application communication between ACAPs, platform applications, and external clients (`device_data_hub_manager.py`).
+* **Overlay APIs**:
+  * **Axoverlay 2 API & Legacy Axoverlay API**: Render dynamic overlays directly on video streams (`overlay_manager.py`).
+  * **Bounding Box API**: Draw burnt-in bounding box overlays on video sources.
+* **Parameter API (AXParameter)**: Read/modify application parameters in `manifest.json`, manage parameter callbacks, and access system settings via `param.cgi` (`param_manager.py`).
+* **Video Capture API (VDO)**: Access video/image channels and streams across supported resolutions and compression formats (H.264, H.265, JPEG, NV12, Y800) (`image_manager.py`).
+* **PTZ Control WS API**: WebSocket-based persistent connection for low-latency PTZ ContinuousMove commands and status streaming.
+* **Machine Learning API (Larod)**: Unified C API for hardware-accelerated machine learning inference (DLPU/CPU) (`object_analytics_manager.py`).
+* **Open Source & Supplementary APIs**: Pipewire audio capture/playback, Cairo 2D graphics, OpenCL acceleration, OpenGL 2, FastCGI HTTP request handling, OpenSSL cryptography, Jansson JSON, cURL transfers, VAPIX access, and HIDRAW access.
 
 ## Installation and Setup
 

@@ -63,6 +63,22 @@ class TestNewManagers(unittest.TestCase):
             stream=False
         )
 
+        rec.get_recording_spans(recording_id="rec_1")
+        self.device.session.get.assert_called_with(
+            "http://192.168.1.100/axis-cgi/record/spans.cgi",
+            params={"schemaversion": "1", "recordingid": "rec_1"},
+            timeout=10,
+            stream=False
+        )
+
+        rec.get_recording_segments(recording_id="rec_1", span_id="span_1")
+        self.device.session.get.assert_called_with(
+            "http://192.168.1.100/axis-cgi/record/segments.cgi",
+            params={"schemaversion": "1", "recordingid": "rec_1", "spanid": "span_1"},
+            timeout=10,
+            stream=False
+        )
+
         rec.search_recordings(start_time="2026-01-01T00:00:00Z")
         self.device.session.get.assert_called_with(
             "http://192.168.1.100/axis-cgi/record/search.cgi",
@@ -89,6 +105,22 @@ class TestNewManagers(unittest.TestCase):
         self.device.session.post.assert_called_with(
             "http://192.168.1.100/axis-cgi/devicedatahub.cgi",
             json={"apiVersion": "1.0", "method": "getStatus"},
+            params=None,
+            timeout=10
+        )
+
+        ddh.subscribe("com.axis.events")
+        self.device.session.post.assert_called_with(
+            "http://192.168.1.100/axis-cgi/devicedatahub.cgi",
+            json={"apiVersion": "1.0", "method": "subscribe", "params": {"topic": "com.axis.events"}},
+            params=None,
+            timeout=10
+        )
+
+        ddh.unsubscribe("com.axis.events")
+        self.device.session.post.assert_called_with(
+            "http://192.168.1.100/axis-cgi/devicedatahub.cgi",
+            json={"apiVersion": "1.0", "method": "unsubscribe", "params": {"topic": "com.axis.events"}},
             params=None,
             timeout=10
         )
