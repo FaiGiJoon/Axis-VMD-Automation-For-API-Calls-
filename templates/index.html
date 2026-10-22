@@ -155,13 +155,13 @@
                 appList.innerHTML = apps.map(app => `
                     <div class="app-item">
                         <div class="app-info">
-                            <strong>${app.NiceName || app.Name}</strong>
-                            <span class="app-status status-${app.Status.toLowerCase()}">${app.Status}</span>
+                            <strong>${escapeHtml(app.NiceName || app.Name)}</strong>
+                            <span class="app-status status-${escapeHtml(String(app.Status).toLowerCase())}">${escapeHtml(app.Status)}</span>
                         </div>
                         <div class="app-controls">
                             ${app.Status === 'Stopped' ?
-                                `<button type="button" class="btn-apply" onclick="controlApp('${app.Name}', 'start')">Start</button>` :
-                                `<button type="button" class="btn-download" onclick="controlApp('${app.Name}', 'stop')">Stop</button>`
+                                `<button type="button" class="btn-apply" data-app="${escapeHtml(app.Name)}" onclick="controlApp(this.dataset.app, 'start')">Start</button>` :
+                                `<button type="button" class="btn-download" data-app="${escapeHtml(app.Name)}" onclick="controlApp(this.dataset.app, 'stop')">Stop</button>`
                             }
                         </div>
                     </div>
@@ -173,8 +173,14 @@
                     snapshotInterval = setInterval(refreshSnapshot, 5000);
                 }
             } catch (e) {
-                appList.innerHTML = `<p style="color: #fca5a5; font-size: 0.8rem;">Error: ${e.message}</p>`;
+                appList.innerHTML = `<p style="color: #fca5a5; font-size: 0.8rem;">Error: ${escapeHtml(e.message)}</p>`;
             }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[ch]));
         }
 
         async function controlApp(appId, action) {
