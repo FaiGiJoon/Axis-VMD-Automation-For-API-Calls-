@@ -24,6 +24,10 @@ RUN pip install --no-cache-dir \
     numpy \
     opencv-python-headless
 
+# Run as an unprivileged user instead of root
+RUN useradd --create-home --uid 10001 appuser && chown -R appuser /app
+USER appuser
+
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
 
