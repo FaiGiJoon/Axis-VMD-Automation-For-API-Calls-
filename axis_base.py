@@ -38,9 +38,14 @@ class AxisDevice:
             logger.error(f"GET request failed: {e}")
             raise
 
-    def post(self, path, json_data=None, params=None):
+    def post(self, path, json_data=None, params=None, files=None, data=None):
         try:
-            response = self.session.post(f"{self.url_base}{path}", json=json_data, params=params, timeout=self.timeout)
+            kwargs = {"timeout": self.timeout}
+            if files is not None:
+                kwargs["files"] = files
+            if data is not None:
+                kwargs["data"] = data
+            response = self.session.post(f"{self.url_base}{path}", json=json_data, params=params, **kwargs)
             if response.encoding is None:
                 response.encoding = 'utf-8'
             response.raise_for_status()
